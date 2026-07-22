@@ -1,0 +1,169 @@
+# Food Delivery
+
+A full-stack, multi-role food-delivery platform: customers order from restaurants, restaurant
+owners manage their menu and fulfil orders, and drivers deliver them — with **Paystack**
+payments, **real-time order tracking** over WebSockets, and **live driver location on a map**.
+
+Monorepo with a NestJS API, an Expo (React Native) mobile app, and a shared TypeScript types
+package.
+
+---
+
+## Features
+
+**Customer**
+- Browse/search restaurants (paginated, infinite scroll) and view a restaurant's menu.
+- Cart (single active restaurant), checkout with a Google Places delivery address.
+- Pay with Paystack; unpaid orders expire after 30 minutes.
+- Track orders live: status timeline + a map showing the driver moving between pickup and drop-off.
+
+**Restaurant owner**
+- Create/edit a restaurant (Google Places address → coordinates), toggle open/closed.
+- Manage menu categories and items (with image upload).
+- Live incoming orders; advance status (Confirmed → Preparing → Ready).
+- Analytics: today's orders/revenue, totals, and a 7-day revenue chart.
+
+**Driver**
+- Go online/offline; when online, see the available-order pool live.
+- Accept a delivery, pick up, and mark delivered — with a big, interactive map and turn-by-turn
+  hand-off to the device's maps app.
+- Delivery history + stats.
+
+**Cross-cutting**
+- JWT auth with role-based access (customer / restaurant owner / driver / admin).
+- Socket.IO for order updates, the driver pool, and live driver location.
+- Redis (via `CacheService`) stores ephemeral driver locations (not Postgres).
+
+---
+
+## Tech stack
+
+| Area      | Stack |
+|-----------|-------|
+| API       | NestJS 11, Drizzle ORM, PostgreSQL, Socket.IO, `@nestjs/schedule`, Keyv + Redis, Passport JWT |
+| Mobile    | Expo SDK 56, Expo Router, React Native, React Query, Zustand, NativeWind, react-native-maps, expo-location |
+| Shared    | `@food-delivery/types` (TypeScript interfaces shared by API + mobile) |
+| Payments  | Paystack | 
+| Uploads   | UploadThing |
+| Tooling   | pnpm workspaces, TypeScript, Docker Compose (Postgres + Redis) |
+
+---
+
+## Repository layout
+
+```
+apps/
+  api/       NestJS + Drizzle backend (REST + Socket.IO gateway)
+  mobile/    Expo Router app (customer, restaurant, driver flows)
+packages/
+  types/     Shared TS types (@food-delivery/types) — the API/mobile contract
+docker/
+  docker-compose.yml   Local Postgres + Redis
+```
+
+---
+
+## Prerequisites
+
+- **Node.js ≥ 23.6** and **pnpm ≥ 11** (`corepack enable` recommended)
+- **Docker** (for Postgres + Redis) — or your own Postgres/Redis
+- **Xcode** (iOS) and/or **Android Studio** (Android) for native builds
+- Accounts/keys: **Paystack** (test), **Google Maps Platform**, **UploadThing**, optional **PostHog**
+
+---
+
+## Getting started
+
+```bash
+# 1. Install dependencies (workspace root)
+pnpm install
+
+# 2. Start Postgres + Redis
+docker compose -f docker/docker-compose.yml up -d
+
+# 3. Configure environment (fill in the values)
+cp apps/api/.env.example apps/api/.env
+cp apps/mobile/.env.example apps/mobile/.env
+
+# 4. Build shared types (API + mobile depend on them)
+pnpm --filter @food-delivery/types build
+
+# 5. Run database migrations + seed demo users
+pnpm --filter api db:migrate
+pnpm --filter api db:seed
+
+# 6. Start the API
+pnpm --filter api start:dev        # http://localhost:6000 (prefix /api)
+
+# 7. Start the mobile app (in another terminal)
+pnpm --filter mobile start
+```
+
+> `pnpm dev` at the root runs types + API + mobile together via `concurrently`.
+
+### Seeded accounts
+
+All use the password from `apps/api/src/core/database/seed.ts`:
+
+| Role             | Email                 |
+|------------------|-----------------------|
+| Admin            | `admin@example.com`   |
+| Customer         | `customer@example.com`|
+| Restaurant owner | `owner@example.com`   |
+| Driver           | `driver@example.com`  |
+
+---
+
+## Environment variables
+
+See **[`apps/api/.env.example`](apps/api/.env.example)** and
+**[`apps/mobile/.env.example`](apps/mobile/.env.example)** for the full list and notes. Highlights:
+
+- **API**: `DATABASE_URL`, `JWT_SECRET`, `REDIS_URL`, `PAYSTACK_SECRET_KEY`, `UPLOADTHING_TOKEN`.
+- **Mobile**: `EXPO_PUBLIC_API_URL` (use your LAN IP, not `localhost`, on a device),
+  `GOOGLE_MAPS_API_KEY` + `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` (same key), optional PostHog.
+
+> Never commit real `.env` files or keys — only the `.env.example` templates are tracked.
+> Restrict the Google Maps key by bundle id / SHA since it ships in the client.
+
+---
+
+## Mobile: native builds
+
+The app uses native modules (`react-native-maps`, `expo-location`, `@gorhom/bottom-sheet`,
+`@react-native-async-storage/async-storage`, `socket.io-client`), so **Expo Go is not enough** —
+you need a **development build**:
+
+```bash
+cd apps/mobile
+npx expo run:ios        # or: npx expo run:android
+```
+
+If you change native config (`app.config.js`, plugins, permissions), regenerate native code:
+
+```bash
+npx expo prebuild --clean
+```
+
+`ios/` and `android/` are git-ignored (generated by prebuild). Google Places autocomplete needs
+`EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` set **before** bundling (`npx expo start -c` to clear the cache).
+
+---
+
+## API at a glance
+
+- Base prefix: `/api`. Every response is wrapped as `{ status, message, data }`.
+- Auth: `POST /api/auth/register`, `POST /api/auth/login` → JWT bearer token.
+- Resources: `restaurants`, `restaurants/:id/menu`, `orders`, `drivers`, `payments`, `uploads`.
+- Realtime: Socket.IO namespace `/orders` (JWT via `auth.token`) — order updates, the driver
+  pool, and `order:driver-location`.
+- Webhook: `POST /api/payments/webhook` (Paystack, signature-verified).
+
+Useful scripts (run with `pnpm --filter api <script>`): `start:dev`, `build`, `db:generate`,
+`db:migrate`, `db:studio`, `db:seed`.
+
+---
+
+## License
+
+ISC © Mfonobong Ekott

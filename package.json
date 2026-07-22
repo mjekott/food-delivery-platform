@@ -1,0 +1,40 @@
+{
+  "name": "food-delivery",
+  "version": "1.0.0",
+  "description": "Food delivery application",
+  "private": true,
+  "type": "module",
+  "author": {
+    "name": "Mfonobong Ekott"
+  },
+  "keywords": [
+    "food",
+    "delivery",
+    "application"
+  ],
+  "scripts": {
+    "dev:types": "node init && pnpm --filter @food-delivery/types run dev",
+    "dev:api": "node init && pnpm --filter api run start:dev",
+    "dev:mobile": "node init && pnpm --filter mobile run start --ios",
+    "dev": "node init && pnpm --filter @food-delivery/types run build && concurrently -n types,api,mobile -c blue,green,magenta \"pnpm run dev:types\" \"pnpm run dev:api\" \"pnpm run dev:mobile\""
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=23.6.0",
+      "onFail": "error"
+    },
+    "packageManager": {
+      "name": "pnpm",
+      "version": "^11.7.0",
+      "onFail": "download"
+    }
+  },
+  "engines": {
+    "node": ">=23.6.0"
+  },
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^10.0.3"
+  }
+}

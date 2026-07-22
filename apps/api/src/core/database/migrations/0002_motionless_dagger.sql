@@ -1,0 +1,1 @@
+ALTER TABLE "restaurants" ADD CONSTRAINT "restaurants_owner_id_unique" UNIQUE("owner_id");
