@@ -37,4 +37,5 @@ posthog-setup-report.md
 
 # Misc
 *.mov
-config.bat
+.env*
+!.env.example

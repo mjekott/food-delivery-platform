@@ -13,10 +13,10 @@
     "application"
   ],
   "scripts": {
-    "dev:types": "node init && pnpm --filter @food-delivery/types run dev",
-    "dev:api": "node init && pnpm --filter api run start:dev",
-    "dev:mobile": "node init && pnpm --filter mobile run start --ios",
-    "dev": "node init && pnpm --filter @food-delivery/types run build && concurrently -n types,api,mobile -c blue,green,magenta \"pnpm run dev:types\" \"pnpm run dev:api\" \"pnpm run dev:mobile\""
+    "dev:types": "pnpm --filter @food-delivery/types run dev",
+    "dev:api": "pnpm --filter api run start:dev",
+    "dev:mobile": "pnpm --filter mobile run start --ios",
+    "dev": "pnpm --filter @food-delivery/types run build && concurrently -n types,api,mobile -c blue,green,magenta \"pnpm run dev:types\" \"pnpm run dev:api\" \"pnpm run dev:mobile\""
   },
   "devEngines": {
     "runtime": {
